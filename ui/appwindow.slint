@@ -1,17 +1,20 @@
 import { Button, VerticalBox, HorizontalBox, SpinBox } from "std-widgets.slint";
+import { PaintCanvas } from "paint_canvas.slint";
 
 export component AppWindow inherits Window {
-  in property <image> canvas_source <=> canvas.source;
-  in property <image> canvas_buffer_source <=> canvas_buf.source;
+  in property <image> canvas_source <=> canvas.canvas;
+  in property <image> canvas_buffer_source <=> canvas.canvas_preview;
   out property <int> brush_value <=> brush_box.value;
   private property <bool> ctrl_pressed;
   callback mouse_event(PointerEvent, length, length, bool);
+  callback spin_box_edited(int);
   callback select_freehand();
   callback select_line();
   callback select_rect();
   callback select_circle();
   callback undo();
   callback redo();
+  callback clear();
   forward-focus: key-handler;
 
   key-handler := FocusScope {
@@ -96,16 +99,23 @@ export component AppWindow inherits Window {
           minimum: 1.0;
           maximum: 10.0;
           value: 1.0;
+
+          edited(value) => {
+            root.spin_box_edited(value);
+          }
+        }
+
+        Button {
+          text: "Clear";
+          clicked => {
+            root.clear();
+          }
         }
       }
-      canvas_rect := TouchArea {
-        width: 500px;
-        height: 500px;
+      canvas := PaintCanvas {
         pointer-event(PointerEvent) => {
           root.mouse_event(PointerEvent, self.mouse-x, self.mouse-y, self.pressed)
         }
-        canvas := Image { }
-        canvas_buf := Image { }
       }
     }
   }

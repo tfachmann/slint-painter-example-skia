@@ -3,12 +3,12 @@ pub trait Command {
     fn unexecute(&mut self);
 }
 
-pub struct UndoStack<Cmd> {
-    undo_stack: Vec<Cmd>,
-    redo_stack: Vec<Cmd>,
+pub struct UndoStack {
+    undo_stack: Vec<Box<dyn Command>>,
+    redo_stack: Vec<Box<dyn Command>>,
 }
 
-impl<Cmd: Command> UndoStack<Cmd> {
+impl UndoStack {
     pub fn new() -> Self {
         Self {
             undo_stack: Default::default(),
@@ -30,7 +30,7 @@ impl<Cmd: Command> UndoStack<Cmd> {
         }
     }
 
-    pub fn push(&mut self, mut command: Cmd) {
+    pub fn push(&mut self, mut command: Box<dyn Command>) {
         command.execute();
         self.undo_stack.push(command);
     }
