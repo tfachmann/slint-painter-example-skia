@@ -4,85 +4,109 @@ export component AppWindow inherits Window {
   in property <image> canvas_source <=> canvas.source;
   in property <image> canvas_buffer_source <=> canvas_buf.source;
   out property <int> brush_value <=> brush_box.value;
+  private property <bool> ctrl_pressed;
   callback mouse_event(PointerEvent, length, length, bool);
   callback select_freehand();
   callback select_line();
   callback select_rect();
   callback select_circle();
+  callback undo();
+  callback redo();
+  forward-focus: key-handler;
 
-  VerticalBox {
-    HorizontalBox {
-      btn_freehand := Button {
-        checked: true;
-        checkable: true;
-        text: "Freehand";
-        clicked => {
-          if (self.checked) {
-            btn_line.checked = false;
-            btn_rect.checked = false;
-            btn_circle.checked = false;
-            root.select_freehand();
-          } else {
-            self.checked = true;
-          }
-        }
+  key-handler := FocusScope {
+    key-pressed(event) => {
+      if (event.modifiers.control && !ctrl_pressed) {
+        ctrl_pressed = true;
       }
-      btn_line := Button {
-        checkable: true;
-        text: "Line";
-        clicked => {
-          if (self.checked) {
-            btn_freehand.checked = false;
-            btn_rect.checked = false;
-            btn_circle.checked = false;
-            root.select_line();
-          } else {
-            self.checked = true;
-          }
-        }
+      if (ctrl_pressed && event.text == "z") {
+        undo();
       }
-      btn_rect := Button {
-        checkable: true;
-        text: "Rectangle";
-        clicked => {
-          if (self.checked) {
-            btn_freehand.checked = false;
-            btn_line.checked = false;
-            btn_circle.checked = false;
-            root.select_rect();
-          } else {
-            self.checked = true;
-          }
-        }
+      if (ctrl_pressed && event.text == "y") {
+        redo();
       }
-      btn_circle := Button {
-        checkable: true;
-        text: "Circle";
-        clicked => {
-          if (self.checked) {
-            btn_freehand.checked = false;
-            btn_line.checked = false;
-            btn_rect.checked = false;
-            root.select_circle();
-          } else {
-            self.checked = true;
-          }
-        }
-      }
-      brush_box := SpinBox {
-        minimum: 1.0;
-        maximum: 10.0;
-        value: 1.0;
-      }
+      accept
     }
-    canvas_rect := TouchArea {
-      width: 500px;
-      height: 500px;
-      pointer-event(PointerEvent) => {
-        root.mouse_event(PointerEvent, self.mouse-x, self.mouse-y, self.pressed)
+    key-released(event) => {
+      if (event.modifiers.control) {
+        ctrl_pressed = false;
       }
-      canvas := Image { }
-      canvas_buf := Image { }
+      accept
+    }
+    VerticalBox {
+      HorizontalBox {
+        btn_freehand := Button {
+          checked: true;
+          checkable: true;
+          text: "Freehand";
+          clicked => {
+            if (self.checked) {
+              btn_line.checked = false;
+              btn_rect.checked = false;
+              btn_circle.checked = false;
+              root.select_freehand();
+            } else {
+              self.checked = true;
+            }
+          }
+        }
+        btn_line := Button {
+          checkable: true;
+          text: "Line";
+          clicked => {
+            if (self.checked) {
+              btn_freehand.checked = false;
+              btn_rect.checked = false;
+              btn_circle.checked = false;
+              root.select_line();
+            } else {
+              self.checked = true;
+            }
+          }
+        }
+        btn_rect := Button {
+          checkable: true;
+          text: "Rectangle";
+          clicked => {
+            if (self.checked) {
+              btn_freehand.checked = false;
+              btn_line.checked = false;
+              btn_circle.checked = false;
+              root.select_rect();
+            } else {
+              self.checked = true;
+            }
+          }
+        }
+        btn_circle := Button {
+          checkable: true;
+          text: "Circle";
+          clicked => {
+            if (self.checked) {
+              btn_freehand.checked = false;
+              btn_line.checked = false;
+              btn_rect.checked = false;
+              root.select_circle();
+            } else {
+              self.checked = true;
+            }
+          }
+        }
+        brush_box := SpinBox {
+          minimum: 1.0;
+          maximum: 10.0;
+          value: 1.0;
+        }
+      }
+      canvas_rect := TouchArea {
+        width: 500px;
+        height: 500px;
+        pointer-event(PointerEvent) => {
+          root.mouse_event(PointerEvent, self.mouse-x, self.mouse-y, self.pressed)
+        }
+        canvas := Image { }
+        canvas_buf := Image { }
+      }
     }
   }
 }
