@@ -1,20 +1,24 @@
-import { Button, VerticalBox, HorizontalBox, SpinBox } from "std-widgets.slint";
-import { PaintCanvas } from "paint_canvas.slint";
+import { PaintWindow } from "paint_window.slint";
+import { Button, TabWidget } from "std-widgets.slint";
 
 export component AppWindow inherits Window {
-  in property <image> canvas_source <=> canvas.canvas;
-  in property <image> canvas_buffer_source <=> canvas.canvas_preview;
-  out property <int> brush_value <=> brush_box.value;
-  private property <bool> ctrl_pressed;
-  callback mouse_event(PointerEvent, length, length, bool);
-  callback spin_box_edited(int);
-  callback select_freehand();
-  callback select_line();
-  callback select_rect();
-  callback select_circle();
+  in property <image> canvas_background <=> paint_window.canvas_background;
+  in property <image> canvas_source <=> paint_window.canvas_source;
+  in property <image> canvas_buffer_source <=> paint_window.canvas_preview;
+  in-out property canvas_width <=> paint_window.canvas_width;
+  in-out property canvas_height <=> paint_window.canvas_height;
+  out property <int> brush_value <=> paint_window.brush_value;
+  callback mouse_event <=> paint_window.mouse_event;
+  callback spin_box_edited <=> paint_window.spin_box_edited;
+  callback select_freehand <=> paint_window.select_freehand;
+  callback select_line <=> paint_window.select_line;
+  callback select_rect <=> paint_window.select_rect;
+  callback select_circle <=> paint_window.select_circle;
+  callback clear <=> paint_window.clear;
   callback undo();
   callback redo();
-  callback clear();
+
+  private property <bool> ctrl_pressed;
   forward-focus: key-handler;
 
   key-handler := FocusScope {
@@ -36,87 +40,9 @@ export component AppWindow inherits Window {
       }
       accept
     }
-    VerticalBox {
-      HorizontalBox {
-        btn_freehand := Button {
-          checked: true;
-          checkable: true;
-          text: "Freehand";
-          clicked => {
-            if (self.checked) {
-              btn_line.checked = false;
-              btn_rect.checked = false;
-              btn_circle.checked = false;
-              root.select_freehand();
-            } else {
-              self.checked = true;
-            }
-          }
-        }
-        btn_line := Button {
-          checkable: true;
-          text: "Line";
-          clicked => {
-            if (self.checked) {
-              btn_freehand.checked = false;
-              btn_rect.checked = false;
-              btn_circle.checked = false;
-              root.select_line();
-            } else {
-              self.checked = true;
-            }
-          }
-        }
-        btn_rect := Button {
-          checkable: true;
-          text: "Rectangle";
-          clicked => {
-            if (self.checked) {
-              btn_freehand.checked = false;
-              btn_line.checked = false;
-              btn_circle.checked = false;
-              root.select_rect();
-            } else {
-              self.checked = true;
-            }
-          }
-        }
-        btn_circle := Button {
-          checkable: true;
-          text: "Circle";
-          clicked => {
-            if (self.checked) {
-              btn_freehand.checked = false;
-              btn_line.checked = false;
-              btn_rect.checked = false;
-              root.select_circle();
-            } else {
-              self.checked = true;
-            }
-          }
-        }
-        brush_box := SpinBox {
-          minimum: 1.0;
-          maximum: 10.0;
-          value: 1.0;
+  }
 
-          edited(value) => {
-            root.spin_box_edited(value);
-          }
-        }
-
-        Button {
-          text: "Clear";
-          clicked => {
-            root.clear();
-          }
-        }
-      }
-      canvas := PaintCanvas {
-        pointer-event(PointerEvent) => {
-          root.mouse_event(PointerEvent, self.mouse-x, self.mouse-y, self.pressed)
-        }
-      }
-    }
+  VerticalLayout {
+    paint_window := PaintWindow { }
   }
 }

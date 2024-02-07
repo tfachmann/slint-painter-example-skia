@@ -1,5 +1,5 @@
 [package]
-name = "slint-drawing-example"
+name = "slint-painter-example-skia"
 version = "0.1.0"
 authors = ["Timo"]
 edition = "2021"
@@ -8,7 +8,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-slint = "1.4"
+slint = { version = "1.4", features = ["renderer-winit-skia"] }
 tiny-skia = "0.11.3"
 
 [build-dependencies]

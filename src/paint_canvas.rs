@@ -25,8 +25,8 @@ impl BufferExt for SharedPixelBuffer<Rgba8Pixel> {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct DrawingState {
-    /// Start of the mouse needed for Line, Rect, Circle
+struct DrawingState {
+    /// Start of the mouse needed for Line, Rect, Ellipse
     start: Option<(f32, f32)>,
 
     /// Current path needed for Freehand
@@ -37,14 +37,6 @@ pub struct DrawingState {
 }
 
 impl DrawingState {
-    pub fn new() -> Self {
-        Self {
-            start: None,
-            path: None,
-            path_finalized: None,
-        }
-    }
-
     fn clear(&mut self) {
         self.start = None;
         self.path = None;
@@ -67,20 +59,47 @@ impl DrawnPath {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Tool {
+    #[default]
     Freehand,
     Line,
     Rect,
-    Circle,
+    Ellipse,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct ToolProperties {
     pub size: f32,
+    pub color: tiny_skia::Color,
 }
 
-// TODO: Separate further to have two different painters!
+impl Default for ToolProperties {
+    fn default() -> Self {
+        Self {
+            size: 5.0,
+            color: tiny_skia::Color::from_rgba8(255, 0, 0, 255),
+        }
+    }
+}
+
+/// Paint canvas API.
+///
+/// # Example
+///
+/// Create it with the builder pattern:
+///
+/// ```
+/// use paint_canvas::PaintCanvas;
+///
+/// let paint_canvas = Rc::new(RefCell::new(
+///     PaintCanvas::builder(600, 800)
+///         .tool_type(Tool::Freehand)
+///         .tool_size(ui.get_brush_value() as f32)
+///         .tool_color(tiny_skia::Color::from_rgba8(255, 0, 0, 255))
+///         .build(),
+/// ));
+/// ```
 #[derive(Debug, Clone)]
 pub struct PaintCanvas {
     /// A collection of the displayed paths
@@ -98,30 +117,17 @@ pub struct PaintCanvas {
     /// Selected Tool
     pub selected_tool: Tool,
 
-    /// Tool Properties
+    /// Tool properties
     pub tool_properties: ToolProperties,
+
+    /// Tool preview color
+    pub tool_preview_color: tiny_skia::Color,
 }
 
 impl PaintCanvas {
-    pub fn new(
-        width: u32,
-        height: u32,
-        selected_tool: Tool,
-        tool_properties: ToolProperties,
-    ) -> Self {
-        let mut path_preview = SharedPixelBuffer::<Rgba8Pixel>::new(width, height);
-        path_preview.fill(tiny_skia::Color::TRANSPARENT);
-
-        let mut buffer = SharedPixelBuffer::<Rgba8Pixel>::new(width, height);
-        // buffer.fill(tiny_skia::Color::from_rgba8(31, 41, 55, 255));
-        Self {
-            paths: Default::default(),
-            buffer,
-            path_preview,
-            drawing_state: Default::default(),
-            selected_tool,
-            tool_properties,
-        }
+    /// Builder pattern to create a `PaintCanvas`.
+    pub fn builder(width: u32, height: u32) -> PaintCanvasBuilder {
+        PaintCanvasBuilder::new(width, height)
     }
 
     pub fn set_start(&mut self, mouse_x: f32, mouse_y: f32) {
@@ -136,20 +142,19 @@ impl PaintCanvas {
         self.tool_properties.size = size;
     }
 
-    pub fn finalized_path(&self) -> &Option<tiny_skia::Path> {
-        &self.drawing_state.path_finalized
+    pub fn set_tool_color(&mut self, color: tiny_skia::Color) {
+        self.tool_properties.color = color;
+    }
+
+    pub fn set_tool_preview_color(&mut self, color: tiny_skia::Color) {
+        self.tool_preview_color = color;
     }
 
     pub fn drawn_path(&self) -> Option<DrawnPath> {
         self.drawing_state
             .path_finalized
             .clone()
-            .map(|path| DrawnPath::new(path, self.tool_properties.clone()))
-    }
-
-    pub fn clear(&mut self) {
-        self.paths.clear();
-        self.apply();
+            .map(|path| DrawnPath::new(path, self.tool_properties))
     }
 
     pub fn clear_state(&mut self) {
@@ -192,7 +197,7 @@ impl PaintCanvas {
             Tool::Freehand => self.draw_freehand_buffer(mouse_x, mouse_y),
             Tool::Line => self.draw_line_buffer(mouse_x, mouse_y),
             Tool::Rect => self.draw_rect_buffer(mouse_x, mouse_y),
-            Tool::Circle => self.draw_circle_buffer(mouse_x, mouse_y),
+            Tool::Ellipse => self.draw_circle_buffer(mouse_x, mouse_y),
         };
     }
 
@@ -292,3 +297,65 @@ impl PaintCanvas {
         pixmap.stroke_path(&path, &paint, &stroke, Default::default(), None);
     }
 }
+
+/// Builder pattern to create a `PaintCanvas`
+pub struct PaintCanvasBuilder {
+    canvas: PaintCanvas,
+}
+
+impl PaintCanvasBuilder {
+    pub fn new(width: u32, height: u32) -> Self {
+        let mut path_preview = SharedPixelBuffer::<Rgba8Pixel>::new(width, height);
+        path_preview.fill(tiny_skia::Color::TRANSPARENT);
+
+        let buffer = SharedPixelBuffer::<Rgba8Pixel>::new(width, height);
+
+        Self {
+            canvas: PaintCanvas {
+                paths: Vec::new(),
+                buffer,
+                path_preview,
+                drawing_state: DrawingState::default(),
+                selected_tool: Tool::default(),
+                tool_properties: ToolProperties::default(),
+                tool_preview_color: tiny_skia::Color::from_rgba8(212, 212, 216, 255),
+            },
+        }
+    }
+
+    /// Sets the tool properties directly.
+    pub fn tool_properties(mut self, tool_properties: ToolProperties) -> Self {
+        self.canvas.tool_properties = tool_properties;
+        self
+    }
+
+    /// Sets the color of the tool.
+    pub fn tool_color(mut self, color: tiny_skia::Color) -> Self {
+        self.canvas.tool_properties.color = color;
+        self
+    }
+
+    /// Sets the size of the tool.
+    pub fn tool_size(mut self, size: f32) -> Self {
+        self.canvas.tool_properties.size = size;
+        self
+    }
+
+    /// Sets the preview color of the tool.
+    pub fn tool_preview_color(mut self, color: tiny_skia::Color) -> Self {
+        self.canvas.tool_preview_color = color;
+        self
+    }
+
+    /// Sets the type of the tool
+    pub fn tool_type(mut self, tool: Tool) -> Self {
+        self.canvas.selected_tool = tool;
+        self
+    }
+
+    /// Finalizes the builder and returns the `PaintCanvas`.
+    pub fn build(self) -> PaintCanvas {
+        self.canvas
+    }
+}
+

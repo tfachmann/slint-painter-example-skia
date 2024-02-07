@@ -1,7 +1,9 @@
 export component PaintCanvas inherits TouchArea {
+  in-out property <image> canvas_background <=> background.source;
   in-out property <image> canvas <=> canvas.source;
   in-out property <image> canvas_preview <=> canvas_preview.source;
 
+  background := Image { }
   canvas := Image { }
   canvas_preview := Image { }
 }

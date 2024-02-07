@@ -1,3 +1,11 @@
+use slint_build::CompilerConfiguration;
+
 fn main() {
-    slint_build::compile("ui/appwindow.slint").unwrap();
+    let config = CompilerConfiguration::new();
+    slint_build::compile_with_config(
+        "ui/appwindow.slint",
+        config.with_style("fluent-dark".to_string()),
+    )
+    .unwrap();
 }
+
